@@ -1,4 +1,4 @@
-import { CalculatorError } from './errors.js';
+import { CalculatorError, DivisionByZeroError } from './errors.js';
 
 export function evaluate(ast) {
   let result;
@@ -13,15 +13,15 @@ export function evaluate(ast) {
       break;
     }
     case 'binary': {
-      const a = evaluate(ast.left)
-      const b = evaluate(ast.right)
+      const a = evaluate(ast.left);
+      const b = evaluate(ast.right);
       switch (ast.operator) {
         case '+': result = a + b; break;
         case '-': result = a - b; break;
         case '*': result = a * b; break;
         case '/':
-          // The caller handles a zero divisor before this operation.
-          result = b === 0 ? quotient : a / b;
+          if (b === 0) throw new DivisionByZeroError();
+          result = a / b;
           break;
         default: throw new CalculatorError(`Unsupported operator: ${ast.operator}`);
       }

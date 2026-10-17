@@ -17,7 +17,8 @@ export async function runCalculator({ input = stdin, output = stdout } = {}) {
 
   try {
     for await (const line of rl) {
-      output.write('calc> ');
+      // Echo the entered line so the transcript stays readable.
+      output.write(`calc> ${line}\n`);
       const command = line.trim().toLowerCase();
       if (!command) continue;
       if (command === 'quit' || command === 'exit') {
@@ -25,8 +26,7 @@ export async function runCalculator({ input = stdin, output = stdout } = {}) {
         break;
       }
       if (command === 'help') {
-        // Show the full usage guide here.
-        output.write(HELP_MESAGE + '\n');
+        output.write(`${HELP_TEXT}\n`);
         continue;
       }
       if (command === 'clear') {
@@ -35,9 +35,9 @@ export async function runCalculator({ input = stdin, output = stdout } = {}) {
         continue;
       }
       if (command === 'history') {
-        const his = history.list();
+        const entries = history.list();
         output.write(entries.length
-          ? `${his.map((entry, index) => `${index + 1}. ${entry.expression} = ${entry.result}`).join('\n')}\n`
+          ? `${entries.map((entry, index) => `${index + 1}. ${entry.expression} = ${entry.result}`).join('\n')}\n`
           : 'No history yet.\n');
         continue;
       }
@@ -46,11 +46,10 @@ export async function runCalculator({ input = stdin, output = stdout } = {}) {
         const result = calculate(line);
         const display = formatResult(result);
         history.add(line.trim(), display);
-        output.write('Calculation complete.\n');
+        output.write(`${display}\n`);
       } catch (error) {
         if (!(error instanceof CalculatorError)) throw error;
         output.write(`Error: ${error.message}\n`);
-        if (error.code === 'DIVISION_BY_ZERO') break;
       }
     }
   } finally {

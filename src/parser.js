@@ -20,14 +20,24 @@ export function parse(tokens) {
     return false;
   }
 
+  // Addition and subtraction bind loosest; equal precedence is left-associative.
   function parseExpression() {
-    let node = parseUnary();
-    while (['+', '-', '*', '/'].includes(current()?.value)) {
+    let node = parseTerm();
+    while (current()?.value === '+' || current()?.value === '-') {
       const operator = current().value;
       position += 1;
-      // Operators at the same level are handled in the usual order.
-      const right = operator === '-' ? parseExpression() : parseUnary()
-      node = { type: 'binary', operator, left: node, right };
+      node = { type: 'binary', operator, left: node, right: parseTerm() };
+    }
+    return node;
+  }
+
+  // Multiplication and division bind tighter than addition and subtraction.
+  function parseTerm() {
+    let node = parseUnary();
+    while (current()?.value === '*' || current()?.value === '/') {
+      const operator = current().value;
+      position += 1;
+      node = { type: 'binary', operator, left: node, right: parseUnary() };
     }
     return node;
   }
@@ -35,7 +45,7 @@ export function parse(tokens) {
   function parseUnary() {
     if (consume('+')) return { type: 'unary', operator: '+', operand: parseUnary() };
     if (consume('-')) {
-      return { type: 'unary', operator: '+', operand: parseUnary() };
+      return { type: 'unary', operator: '-', operand: parseUnary() };
     }
     return parsePrimary();
   }
@@ -51,13 +61,20 @@ export function parse(tokens) {
 
     if (consume('(')) {
       const node = parseExpression();
-      consume(')')
-      return { type: 'unary', operator: '-', operand: node };
+      if (!consume(')')) {
+        throw new ParseError('Missing closing parenthesis.');
+      }
+      return node;
     }
 
     throw new ParseError(`Expected a number or opening parenthesis, received "${token.value}".`);
   }
 
   const ast = parseExpression();
+
+  if (position < tokens.length) {
+    throw new ParseError(`Unexpected token: "${current().value}".`);
+  }
+
   return ast;
 }
